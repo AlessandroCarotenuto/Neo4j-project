@@ -1,0 +1,37 @@
+#carica gli utenti e case dal csv
+LOAD CSV FROM "file:///persone.csv" AS column
+with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
+merge (p:Persona{cf:cf,birthdate:birthdate,surname:surname, name:name})
+merge (f:Home{home_id:home})
+merge (p)-[:LIVES_IN]->(f)
+
+#restituisce la famiglia di Ezio
+match(p{name:"Ezio", surname:"Merola" })-[:LIVES_IN*0..]-(h)
+return h
+
+-------------------------------------------------------------------
+#crea una relazione di incontro tra p1 e p2 in questo istante (datetime() restituisce data e ora attuale)
+match (p1{name:"Ezio",surname:"Merola"}),(p2{name:"Flavio",surname:"Marini"})
+create (p1)-[:MEETS{timestamp:datetime()}]->(p2)
+
+#visualizza gli incontri di Ezio
+match (p1{name:"Ezio"})-[:MEETS*0..]-(p2)
+return p2
+
+#visualizza gli incontri di Ezio dell'ultima settimana
+match (p1{name:"Ezio"})-[r:MEETS]-(p2)
+where datetime()-duration({weeks:1}) < r.timestamp
+return p2,p1
+
+-------------------------------------------------------------------
+#crea un ristorante e crea la relazione che dice "Ezio è andato al ristorante da Mimmo entrando 30 minuti fa e uscendo ora
+match (p{name:"Ezio",surname:"Merola"})
+create (pp:PublicPlace{name:"Pizzeria da Mimmo",type:"restaurant",address:"via roma,1", id:1}
+create (p)-[:GOES_TO{datetime_in:datetime()-duration({minutes:30}),datetime_out:datetime()}]->(pp)
+
+-------------------------------------------------------------------
+#BONUS: distanza tra due punti (1154 metri)
+with
+point({latitude:toFloat(23.4), longitude:toFloat(123.34)}) AS point1,
+point({latitude:toFloat(23.41), longitude:toFloat(123.343)}) AS point2
+return toInteger(distance(point1, point2))
