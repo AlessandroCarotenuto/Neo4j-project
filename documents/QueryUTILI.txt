@@ -2,8 +2,17 @@
 LOAD CSV FROM "file:///persone.csv" AS column
 with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
 merge (p:Persona{cf:cf,birthdate:birthdate,surname:surname, name:name})
-merge (f:Home{home_id:home})
+merge (f:Home{home_id:toInteger(home)})
 merge (p)-[:LIVES_IN]->(f)
+
+#carica i public place (se un public place non ha il civico lo ignora)
+LOAD CSV FROM "file:///PublicPlaces.csv" AS column
+with column[0] as name, column[1] as type,column[2] as address , column[4] as cap, column[3] as civicn, column[5] as city,column[6] as id  where name<>"Name"
+foreach (n in (case when civicn is not null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,civic_number:civicn,city:city})
+)
+foreach (n in (case when civicn is  null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,city:city})
+)
+-------------------------------------------------------------------
 
 #restituisce la famiglia di Ezio
 match(p{name:"Ezio", surname:"Merola" })-[:LIVES_IN*0..]-(h)
