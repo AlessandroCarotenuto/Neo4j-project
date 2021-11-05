@@ -1,0 +1,17 @@
+\babel@toc {english}{}
+\contentsline {section}{\numberline {1}Problem Specification}{3}{section.1}%
+\contentsline {paragraph}{}{3}{section*.2}%
+\contentsline {section}{\numberline {2}Hypotesis}{3}{section.2}%
+\contentsline {paragraph}{}{3}{section*.3}%
+\contentsline {section}{\numberline {3}ER diagram}{3}{section.3}%
+\contentsline {paragraph}{}{3}{section*.4}%
+\contentsline {section}{\numberline {4}Dataset description}{3}{section.4}%
+\contentsline {paragraph}{}{3}{section*.5}%
+\contentsline {section}{\numberline {5}Queries and Commands}{3}{section.5}%
+\contentsline {paragraph}{}{3}{section*.6}%
+\contentsline {section}{\numberline {6}UI description}{3}{section.6}%
+\contentsline {paragraph}{}{3}{section*.7}%
+\contentsline {section}{\numberline {7}User Guide}{3}{section.7}%
+\contentsline {paragraph}{}{3}{section*.8}%
+\contentsline {section}{\numberline {8}References and Sources(IF NEEDED)}{4}{section.8}%
+\contentsline {paragraph}{}{4}{section*.9}%
