@@ -1,4 +1,5 @@
 import PySimpleGUI as sg
+from py2neo import Graph
 
 
 def checkFields():
@@ -62,6 +63,9 @@ layout = [
 
 window = sg.Window("ContagionShield", layout)
 
+# init database
+graph = Graph("bolt://localhost:7687", auth=("neo4j", "smbud"))
+
 # event loop
 while True:
     event, values = window.read()
@@ -70,6 +74,10 @@ while True:
 
     if event == "-PLACE-":
         checkFields()
+
+    if event == "-QUERY-":
+        data = graph.run("MATCH (people:Person) RETURN people.name LIMIT 10").data()
+        window["-QUERY-LIST-"].update(data)
 
     if event == "Exit" or event == sg.WIN_CLOSED:
         break
