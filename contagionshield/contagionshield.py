@@ -19,7 +19,7 @@ custom_query_column = [
     ],
     [
         sg.Text("Name of the place:"),
-        sg.In(size=(25, 1), enable_events=True, key="-PLACE-", default_text="Pizzeria da Mario"),
+        sg.In(size=(25, 1), enable_events=True, key="-PLACE-", default_text="San Siro"),
     ],
     [
         sg.Checkbox("Vaccinated/Tested", enable_events=True, key="-VACCINATED-"),
@@ -75,9 +75,17 @@ while True:
     if event == "-PLACE-":
         checkFields()
 
+    if event == "-CUSTOM-QUERY-":
+        date = window["-DATE-"].get()
+        place = window["-PLACE-"].get()
+        query = "MATCH (people:Person)-[:WENT_TO]-(p:PublicPlace{name:\"%s\"}) return people limit 20" % place
+        data = graph.run(query).data()
+        window["-CUSTOM-LIST-"].update(data)
+
     if event == "-QUERY-":
-        data = graph.run("MATCH (people:Person) RETURN people.name LIMIT 10").data()
-        window["-QUERY-LIST-"].update(data)
+        if values["-QUERY-"] == "Query 1":
+            data = graph.run("MATCH (people:Person) RETURN people.name LIMIT 10").data()
+            window["-QUERY-LIST-"].update(data)
 
     if event == "Exit" or event == sg.WIN_CLOSED:
         break
