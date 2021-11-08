@@ -14,15 +14,15 @@ foreach (n in (case when civicn is  null then[1] else [] end) |  merge (pp:Publi
 )
 
 #crea i 4 vaccini
-CREATE (v:Vaccine {Type: "Pfizer-BioNTech"})
-CREATE (k:Vaccine {Type: "AstraZeneca"})
-CREATE (m:Vaccine {Type: "Johnson & Johnson"})
-CREATE (n:Vaccine {Type: "Moderna"})
+CREATE (v:Vaccine {type: "Pfizer-BioNTech"})
+CREATE (k:Vaccine {type: "AstraZeneca"})
+CREATE (m:Vaccine {type: "Johnson & Johnson"})
+CREATE (n:Vaccine {type: "Moderna"})
 
 #carica il collegamento tra vaccini e persone
 LOAD CSV FROM "file:///vaccines.csv" AS column
-WITH column[0] as cf, column[1] as Type, column[2] as datetime
-MATCH (p:Person{cf:cf}), (v:Vaccine{Type:Type})
+WITH column[0] as cf, column[1] as type, column[2] as datetime
+MATCH (p:Person{cf:cf}), (v:Vaccine{type:type})
 CREATE (p)-[r:GOT{datetime:datetime}]->(v)
 
 #crea i test
