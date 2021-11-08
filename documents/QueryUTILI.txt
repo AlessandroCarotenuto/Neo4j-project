@@ -63,7 +63,11 @@ return h
 match (p1{name:"Ezio",surname:"Merola"}),(p2{name:"Flavio",surname:"Marini"})
 create (p1)-[:MET{timestamp:datetime()}]->(p2)
 
-#visualizza gli incontri di Ezio
+#visualizza esclusivamente le persone incontrate da Ezio (senza relazioni)
+match (p1{name:"Ezio"})-[:MET]->(p2)
+return p2
+
+#visualizza le persone incontrate da Ezio e tutte il grafo degli incontri da lui in poi
 match (p1{name:"Ezio"})-[:MET*0..]->(p2)
 return p2
 
