@@ -1,17 +1,57 @@
 #carica gli utenti e case dal csv
 LOAD CSV FROM "file:///persone.csv" AS column
 with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
-merge (p:Persona{cf:cf,birthdate:birthdate,surname:surname, name:name})
+merge (p:Person{cf:cf,birthdate:birthdate,surname:surname, name:name})
 merge (f:Home{home_id:toInteger(home)})
 merge (p)-[:LIVES_IN]->(f)
 
 #carica i public place (se un public place non ha il civico lo ignora)
-LOAD CSV FROM "file:///PublicPlaces.csv" AS column
+LOAD CSV FROM "file:///PublicPlacesV2.csv" AS column
 with column[0] as name, column[1] as type,column[2] as address , column[4] as cap, column[3] as civicn, column[5] as city,column[6] as id  where name<>"Name"
 foreach (n in (case when civicn is not null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,civic_number:civicn,city:city})
 )
 foreach (n in (case when civicn is  null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,city:city})
 )
+
+#crea i 4 vaccini
+CREATE (v:Vaccine {Type: "Pfizer-BioNTech"})
+CREATE (k:Vaccine {Type: "AstraZeneca"})
+CREATE (m:Vaccine {Type: "Johnson & Johnson"})
+CREATE (n:Vaccine {Type: "Moderna"})
+
+#carica il collegamento tra vaccini e persone
+LOAD CSV FROM "file:///vaccines.csv" AS column
+WITH column[0] as cf, column[1] as Type, column[2] as datetime
+MATCH (p:Person{cf:cf}), (v:Vaccine{Type:Type})
+CREATE (p)-[r:GOT{datetime:datetime}]->(v)
+
+#crea i test
+CREATE (t:Test{type: "Molecular"})
+CREATE (k:Test{type: "Antigen"})
+
+#carica il collegamento tra test e persone
+LOAD CSV FROM "file:///tests.csv" AS column
+WITH column[0] as cf, column[1] as type, column[2] as result, column[3] as datetime
+MATCH (p:Person{cf:cf}), (t:Test{type:type})
+CREATE (p)-[r:GOT_TESTED{result:result, datetime:datetime}]->(t)
+
+#associa gli indirizzi delle case ai corrispettivi id
+LOAD CSV FROM "file:///homes.csv" AS column
+WITH column[0] as id, column[1] as address, column[2] as house_number, column[3] as cap
+MATCH (h:Home) where h.home_id = toInteger(id)
+SET h.address = address, h.house_number = house_number, h.cap = cap
+
+#carica gli incontri tra persone
+LOAD CSV FROM "file:///meetings.csv" AS column
+WITH column[0] as geopoint, column[1] as timestamp, column[2] as cf1, column[3] as cf2
+MATCH (p:Person{cf:cf1}), (k:Person{cf:cf2})
+CREATE (p)-[r:MET{timestamp:timestamp, geopoint:geopoint}]->(k)
+
+#carica le visite ai public place
+LOAD CSV FROM "file:///public_visits.csv" AS column
+WITH column[0] as cf, column[1] as id_place, column[2] as date_in, column[3] as date_out
+MATCH (p:Person{cf:cf}), (k:PublicPlace{id:toInteger(id_place)})
+CREATE (p)-[r:WENT_TO{date_in:date_in, date_out:date_out}]->(k)
 -------------------------------------------------------------------
 
 #restituisce la famiglia di Ezio
@@ -21,14 +61,14 @@ return h
 -------------------------------------------------------------------
 #crea una relazione di incontro tra p1 e p2 in questo istante (datetime() restituisce data e ora attuale)
 match (p1{name:"Ezio",surname:"Merola"}),(p2{name:"Flavio",surname:"Marini"})
-create (p1)-[:MEETS{timestamp:datetime()}]->(p2)
+create (p1)-[:MET{timestamp:datetime()}]->(p2)
 
 #visualizza gli incontri di Ezio
-match (p1{name:"Ezio"})-[:MEETS*0..]-(p2)
+match (p1{name:"Ezio"})-[:MET*0..]->(p2)
 return p2
 
 #visualizza gli incontri di Ezio dell'ultima settimana
-match (p1{name:"Ezio"})-[r:MEETS]-(p2)
+match (p1{name:"Ezio"})-[r:MET]-(p2)
 where datetime()-duration({weeks:1}) < r.timestamp
 return p2,p1
 
