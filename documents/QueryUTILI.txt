@@ -6,7 +6,7 @@ merge (f:Home{home_id:toInteger(home)})
 merge (p)-[:LIVES_IN]->(f)
 
 #carica i public place (se un public place non ha il civico lo ignora)
-LOAD CSV FROM "file:///PublicPlacesV2.csv" AS column
+LOAD CSV FROM "file:///public_places.csv" AS column
 with column[0] as name, column[1] as type,column[2] as address , column[4] as cap, column[3] as civicn, column[5] as city,column[6] as id  where name<>"Name"
 foreach (n in (case when civicn is not null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,civic_number:civicn,city:city})
 )
