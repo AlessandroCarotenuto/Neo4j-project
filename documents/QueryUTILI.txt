@@ -1,8 +1,15 @@
-#carica gli utenti e case dal csv
+************************* DA ESEGUIRE SEQUENZIALMENTE PER IMPORTARE IL DB *************************
+#carica case
+LOAD CSV FROM "file:///homes.csv" AS column
+WITH column[0] as id, column[1] as address, column[2] as house_number, column[3] as cap where id<>"id"
+MERGE (h:Home{home_id:toInteger(id),address:address,house_number:house_number,cap:cap})
+
+#carica gli utenti e collega le case dal csv
 LOAD CSV FROM "file:///people.csv" AS column
 with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
 merge (p:Person{cf:cf,birthdate:birthdate,surname:surname, name:name})
-merge (f:Home{home_id:toInteger(home)})
+with home as home, p as p
+match (f:Home{home_id:toInteger(home)})
 merge (p)-[:LIVES_IN]->(f)
 
 #carica i public place (se un public place non ha il civico lo ignora)
@@ -21,8 +28,10 @@ CREATE (n:Vaccine {type: "Moderna"})
 
 #carica il collegamento tra vaccini e persone
 LOAD CSV FROM "file:///vaccines.csv" AS column
-WITH column[0] as cf, column[1] as type, column[2] as datetime
-MATCH (p:Person{cf:cf}), (v:Vaccine{type:type})
+WITH column[0] as cf, column[1] as type, column[2] as datetime where cf<>"codice_fiscale"
+MATCH (p:Person{cf:cf}) 
+WITH type,p,datetime
+MATCH (v:Vaccine{type:type})
 CREATE (p)-[r:GOT{datetime:datetime(datetime)}]->(v)
 
 #crea i test
@@ -32,14 +41,10 @@ CREATE (k:Test{type: "Antigen"})
 #carica il collegamento tra test e persone
 LOAD CSV FROM "file:///tests.csv" AS column
 WITH column[0] as cf, column[1] as type, column[2] as result, column[3] as datetime
-MATCH (p:Person{cf:cf}), (t:Test{type:type})
+MATCH (p:Person{cf:cf})
+WITH type,result,datetime,p
+MATCH(t:Test{type:type})
 CREATE (p)-[r:GOT_TESTED{result:result, datetime:datetime(datetime)}]->(t)
-
-#associa gli indirizzi delle case ai corrispettivi id
-LOAD CSV FROM "file:///homes.csv" AS column
-WITH column[0] as id, column[1] as address, column[2] as house_number, column[3] as cap
-MATCH (h:Home) where h.home_id = toInteger(id)
-SET h.address = address, h.house_number = house_number, h.cap = cap
 
 #carica gli incontri tra persone
 LOAD CSV FROM "file:///meetings.csv" AS column
@@ -53,7 +58,9 @@ CREATE (p)-[r:MET{timestamp:datetime(timestamp), latitude:latitude, longitude:lo
 #carica le visite ai public place
 LOAD CSV FROM "file:///public_visits.csv" AS column
 WITH column[0] as cf, column[1] as id_place, column[2] as date_in, column[3] as date_out
-MATCH (p:Person{cf:cf}), (k:PublicPlace{id:toInteger(id_place)})
+MATCH (p:Person{cf:cf})
+WITH id_place,date_in,date_out,p
+MATCH(k:PublicPlace{id:toInteger(id_place)})
 CREATE (p)-[r:WENT_TO{date_in:datetime(date_in), date_out:datetime(date_out)}]->(k)
 -------------------------------------------------------------------
 
