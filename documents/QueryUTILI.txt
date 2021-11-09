@@ -1,5 +1,5 @@
 #carica gli utenti e case dal csv
-LOAD CSV FROM "file:///persone.csv" AS column
+LOAD CSV FROM "file:///people.csv" AS column
 with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
 merge (p:Person{cf:cf,birthdate:birthdate,surname:surname, name:name})
 merge (f:Home{home_id:toInteger(home)})
@@ -43,9 +43,12 @@ SET h.address = address, h.house_number = house_number, h.cap = cap
 
 #carica gli incontri tra persone
 LOAD CSV FROM "file:///meetings.csv" AS column
-WITH column[0] as geopoint, column[1] as timestamp, column[2] as cf1, column[3] as cf2
-MATCH (p:Person{cf:cf1}), (k:Person{cf:cf2})
-CREATE (p)-[r:MET{timestamp:datetime(timestamp), geopoint:geopoint}]->(k)
+WITH split(column[0]," ")[0] as latitude,split(column[0]," ")[1] as longitude, column[1] as timestamp, column[2] as cf1, column[3] as cf2 where timestamp<>"timestamp_1"
+MATCH (p:Person{cf:cf1})
+with p,timestamp,latitude,longitude,cf2
+match(k:Person{cf:cf2})
+with p,timestamp,latitude,longitude,k
+CREATE (p)-[r:MET{timestamp:datetime(timestamp), latitude:latitude, longitude:longitude}]->(k)
 
 #carica le visite ai public place
 LOAD CSV FROM "file:///public_visits.csv" AS column
