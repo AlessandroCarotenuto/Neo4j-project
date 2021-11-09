@@ -23,7 +23,7 @@ CREATE (n:Vaccine {type: "Moderna"})
 LOAD CSV FROM "file:///vaccines.csv" AS column
 WITH column[0] as cf, column[1] as type, column[2] as datetime
 MATCH (p:Person{cf:cf}), (v:Vaccine{type:type})
-CREATE (p)-[r:GOT{datetime:datetime}]->(v)
+CREATE (p)-[r:GOT{datetime:datetime(datetime)}]->(v)
 
 #crea i test
 CREATE (t:Test{type: "Molecular"})
@@ -33,7 +33,7 @@ CREATE (k:Test{type: "Antigen"})
 LOAD CSV FROM "file:///tests.csv" AS column
 WITH column[0] as cf, column[1] as type, column[2] as result, column[3] as datetime
 MATCH (p:Person{cf:cf}), (t:Test{type:type})
-CREATE (p)-[r:GOT_TESTED{result:result, datetime:datetime}]->(t)
+CREATE (p)-[r:GOT_TESTED{result:result, datetime:datetime(datetime)}]->(t)
 
 #associa gli indirizzi delle case ai corrispettivi id
 LOAD CSV FROM "file:///homes.csv" AS column
@@ -45,13 +45,13 @@ SET h.address = address, h.house_number = house_number, h.cap = cap
 LOAD CSV FROM "file:///meetings.csv" AS column
 WITH column[0] as geopoint, column[1] as timestamp, column[2] as cf1, column[3] as cf2
 MATCH (p:Person{cf:cf1}), (k:Person{cf:cf2})
-CREATE (p)-[r:MET{timestamp:timestamp, geopoint:geopoint}]->(k)
+CREATE (p)-[r:MET{timestamp:datetime(timestamp), geopoint:geopoint}]->(k)
 
 #carica le visite ai public place
 LOAD CSV FROM "file:///public_visits.csv" AS column
 WITH column[0] as cf, column[1] as id_place, column[2] as date_in, column[3] as date_out
 MATCH (p:Person{cf:cf}), (k:PublicPlace{id:toInteger(id_place)})
-CREATE (p)-[r:WENT_TO{date_in:date_in, date_out:date_out}]->(k)
+CREATE (p)-[r:WENT_TO{date_in:datetime(date_in), date_out:datetime(date_out)}]->(k)
 -------------------------------------------------------------------
 
 #restituisce la famiglia di Ezio
