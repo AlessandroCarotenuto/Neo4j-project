@@ -1,0 +1,47 @@
+#persone malate (ultimo test positivo)
+match (p:Person)-[r:GOT_TESTED]->(t:Test)
+with max(r.datetime) as lastTestDate,p
+match (p)-[r:GOT_TESTED{datetime:lastTestDate}]->(t)
+where r.result="Positive"
+with p as illPeople, r as rlast
+return illPeople
+
+***********************************
+#trova chi è entrato in contatto con una "persona malata" da 15 giorni prima del suo ultimo test positivo
+...
+match (p:Person)-[meeting:MET]->(illPeople)
+where rlast.datetime-duration({days:15})<meeting.timestamp
+return p.cf,illPeople.cf,meeting.timestamp,rlast.datetime
+
+#PROBLEMA SE UNO GIA MALATO PRIMA DELL'ULTIMO TEST NON LO CONTA tra i malati
+
+***********************************
+#trova chi abita con persone malate
+...
+match (p:Person)-[:LIVES_IN]->(h)<-[:LIVES_IN]-(illPeople)
+return p,h
+***********************************
+#trova chi è andato nello stesso luogo pubblico in orari sovrapposti di un infetto a partire da 15 giorni prima del tampone positivo
+...
+match (p:Person)-[r1:WENT_TO]->(pp)<-[r2:WENT_TO]-(illPeople)
+where rlast.datetime-duration({days:15})<r1.date_in  and
+        (
+            duration.inSeconds(r2.date_in,r1.date_out).seconds>0
+            and duration.inSeconds(r1.date_out,r2.date_out).seconds>0
+            or
+            duration.inSeconds(r2.date_in,r1.date_in).seconds>0
+            and duration.inSeconds(r1.date_in,r2.date_out).seconds>0
+            or
+            duration.inSeconds(r1.date_in,r2.date_in).seconds>0
+            and duration.inSeconds(r2.date_out,r1.date_out).seconds>0
+            or
+            duration.inSeconds(r2.date_in,r1.date_in).seconds>0
+            and duration.inSeconds(r1.date_out,r2.date_out).seconds>0
+        )
+
+return p.cf,illPeople.cf,rlast.datetime, r1.date_in as dataIn1,r1.date_out as dataOut1, r2.date_in as dataInIll, r2.date_out as dataOutIll,pp.name as dove 
+
+***********************************
+#trova chi è andato in un pp senza vaccino ne test (negli ultimi tot giorni)
+
+#trova gente con greenpass adesso
