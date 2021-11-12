@@ -83,7 +83,7 @@ return n.name,n.surname,v.type,r.datetime
 #chi si è vaccinato negli ultimi 7 giorni
 match (n:Person)-[r:GOT]->(v)
 where   r.datetime>datetime()-duration({days:7})
-return n.name,n.surname,v.type,r.datetime
+return n.name,n.surname,n.cf,v.type,r.datetime
 
 ***********************************
 #persone attualmente senza greenpass
