@@ -44,6 +44,7 @@ custom_query_column = [
     [
         sg.Checkbox("Unvaccinated", enable_events=True, key="-UNVACCINATED-"),
         sg.Checkbox("Vaccinated", enable_events=True, key="-VACCINATED-"),
+        sg.Checkbox("Tested Negative", enable_events=True, key="-TESTED-"),
         sg.Button(button_text="Send Query", enable_events=True, key="-CUSTOM-QUERY-")
     ],
     [
@@ -99,21 +100,29 @@ while True:
         start_time = values["-START-TIME-"].split(":")
         end_time = values["-END-TIME-"].split(":")
         place = values["-PLACE-"]
-        vaccinated = values["-VACCINATED-"]
-
         a1 = ""
         a2 = ""
         a3 = ""
         a4 = ""
-        if values["-UNVACCINATED-"]:
-            a4 = " and NOT (p)-[:GOT]->(:Vaccine) "
+
         if values["-VACCINATED-"]:
             a1 = ", (p)-[k:GOT]->(v:Vaccine)"
 
-        query = "MATCH (p:Person)-[r:WENT_TO]-(pp:PublicPlace{name:'" + place + "'})" + a1 + a2 + " where r.date_in.year =" \
-                + date[0] + " and r.date_in.month =" + date[1] + " and r.date_in.day =" + date[2] + \
+        # DOVREBBE FUNZIONARE MA PER ORA NON CI SONO PERSONE NEL DB CHE SONO ANDATE IN UN PUBLIC PLACE
+        # E CHE HANNO FATTO UN TEST POSITIVO ENTRO 48 ORE PRIMA
+        if values["-TESTED-"]:
+            a2 = ", (p)-[j:GOT_TESTED]->(t:Test)"
+            a3 = "and j.result = 'Negative' and (r.date_out - duration({hours: 48})) < j.datetime and r.date_in > " \
+                 "j.datetime "
+
+        if values["-UNVACCINATED-"]:
+            a4 = " and NOT (p)-[:GOT]->(:Vaccine) "
+
+        query = "MATCH (p:Person)-[r:WENT_TO]-(pp:PublicPlace{name:'" + place + "'})" + a1 + a2 + "where " \
+                "r.date_in.year =" + date[0] + " and r.date_in.month =" + date[1] + " and r.date_in.day =" + date[2] + \
                 " and ((r.date_in.hour >=" + start_time[0] + " and r.date_out.hour <=" + end_time[0] + ") or (" \
-                "r.date_in.hour <=" + start_time[0] + " and r.date_out.hour >=" + end_time[0] + "))" + a4 + a3 + " return p.name, p.surname, p.cf "
+                "r.date_in.hour <=" + start_time[0] + " and r.date_out.hour >=" + end_time[0] + "))" + a3 + a4+ \
+                "return p.name, p.surname, p.cf "
         data = graph.run(query).data()
         pretty_data = []
         i = 1

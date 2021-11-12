@@ -42,6 +42,70 @@ where rlast.datetime-duration({days:15})<r1.date_in  and
 return p.cf,illPeople.cf,rlast.datetime, r1.date_in as dataIn1,r1.date_out as dataOut1, r2.date_in as dataInIll, r2.date_out as dataOutIll,pp.name as dove 
 
 ***********************************
-#trova chi è andato in un pp senza vaccino ne test (negli ultimi tot giorni)
+#analisi statistica sui vaccinati
+match (n:Person) 
+with count(n) as totalPeople
+match (n:Person)-[:GOT]->(v)
+with totalPeople,count(n) as totalVaccinatedPeople
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>date()-duration({years:30}) and
+        date(n.birthdate)<date()-duration({years:18})
+with totalPeople,totalVaccinatedPeople,count(n) as range1830
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>date()-duration({years:45}) and
+        date(n.birthdate)<date()-duration({years:30})
+with range1830,totalPeople,totalVaccinatedPeople,count(n) as range3045
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>date()-duration({years:60}) and
+        date(n.birthdate)<date()-duration({years:45})
+with range3045,range1830,totalPeople,totalVaccinatedPeople,count(n) as range4560
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>date()-duration({years:80}) and
+        date(n.birthdate)<date()-duration({years:60})
+with range4560,range3045,range1830,totalPeople,totalVaccinatedPeople,count(n) as range6080
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)<date()-duration({years:80})
+return totalPeople,totalVaccinatedPeople,round(100*toFloat(totalVaccinatedPeople)/toFloat(totalPeople)*100)/100 as totalVaccinatedPeoplePerc,
+range1830,round(100*toFloat(range1830)/toFloat(totalPeople)*100)/100 as range1830Perc,
+range3045,round(100*toFloat(range3045)/toFloat(totalPeople)*100)/100 as range3045Perc,
+range4560,round(100*toFloat(range4560)/toFloat(totalPeople)*100)/100 as range4560Perc,
+range6080,round(100*toFloat(range6080)/toFloat(totalPeople)*100)/100 as range6080Perc,
+count(n) as moreThan80,round(100*toFloat(count(n))/toFloat(totalPeople)*100)/100 as moreThan80Perc
 
-#trova gente con greenpass adesso
+***********************************
+#chi si è vaccinato a ottobre
+match (n:Person)-[r:GOT]->(v)
+where   r.datetime>datetime("2021-10-01T00:00:00") and 
+        r.datetime<datetime("2021-10-31T23:59:59") 
+return n.name,n.surname,v.type,r.datetime
+
+***********************************
+#chi si è vaccinato negli ultimi 7 giorni
+match (n:Person)-[r:GOT]->(v)
+where   r.datetime>datetime()-duration({days:7})
+return n.name,n.surname,v.type,r.datetime
+
+***********************************
+#persone attualmente senza greenpass
+MATCH (p:Person)
+optional match (p)-[r:GOT_TESTED]->()
+WHERE r.datetime>datetime()-duration({hours:48}) 
+with r,p
+where r is null
+with p as noTest
+match (noTest)
+where not (noTest)-[:GOT]->()
+return noTest as noTestNoVaccine
+
+***********************************
+#persone andate senza greenpass in un public place
+MATCH (p:Person)-[r:WENT_TO]->(pp)
+with p,r,pp
+match (p)
+where not (p)-[:GOT]->()
+with distinct p as NoVaccine,r,pp
+optional match (NoVaccine)-[rTest:GOT_TESTED]->()
+WHERE rTest.datetime>r.date_in-duration({hours:48}) and rTest.datetime<r.date_in and rTest.result="Negative"
+with r,pp,rTest,NoVaccine
+where rTest is null
+return NoVaccine.cf,r.date_in,pp.name
