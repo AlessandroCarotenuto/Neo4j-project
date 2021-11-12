@@ -1,0 +1,243 @@
+**********************************************************************************************************
+****************************IMPORT DB (copy paste the entire list of commands)**************************** 
+**********************************************************************************************************
+//carica case
+LOAD CSV FROM "file:///homes.csv" AS column
+WITH column[0] as id, column[1] as address, column[2] as house_number, column[3] as cap where id<>"id"
+MERGE (h:Home{home_id:toInteger(id),address:address,house_number:house_number,cap:cap});
+
+//carica gli utenti e collega le case dal csv
+LOAD CSV FROM "file:///people.csv" AS column
+with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
+merge (p:Person{cf:cf,birthdate:birthdate,surname:surname, name:name})
+with home as home, p as p
+match (f:Home{home_id:toInteger(home)})
+merge (p)-[:LIVES_IN]->(f);
+
+//carica i public place (se un public place non ha il civico lo ignora)
+LOAD CSV FROM "file:///public_places.csv" AS column
+with column[0] as name, column[1] as type,column[2] as address , column[4] as cap, column[3] as civicn, column[5] as city,column[6] as id  where name<>"Name"
+foreach (n in (case when civicn is not null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,civic_number:civicn,city:city})
+)
+foreach (n in (case when civicn is  null then[1] else [] end) |  merge (pp:PublicPlace{id:toInteger(id),name:name,type:type,    address:address, cap:cap,city:city})
+);
+
+//crea i 4 vaccini
+CREATE (v:Vaccine {type: "Pfizer-BioNTech"})
+CREATE (k:Vaccine {type: "AstraZeneca"})
+CREATE (m:Vaccine {type: "Johnson & Johnson"})
+CREATE (n:Vaccine {type: "Moderna"});
+
+//carica il collegamento tra vaccini e persone
+LOAD CSV FROM "file:///vaccines.csv" AS column
+WITH column[0] as cf, column[1] as type, column[2] as datetime where cf<>"codice_fiscale"
+MATCH (p:Person{cf:cf}) 
+WITH type,p,datetime
+MATCH (v:Vaccine{type:type})
+CREATE (p)-[r:GOT{datetime:datetime(datetime)}]->(v);
+
+//crea i test
+CREATE (t:Test{type: "Molecular"})
+CREATE (k:Test{type: "Antigen"});
+
+//carica il collegamento tra test e persone
+LOAD CSV FROM "file:///tests.csv" AS column
+WITH column[0] as cf, column[1] as type, column[2] as result, column[3] as datetime
+MATCH (p:Person{cf:cf})
+WITH type,result,datetime,p
+MATCH(t:Test{type:type})
+CREATE (p)-[r:GOT_TESTED{result:result, datetime:datetime(datetime)}]->(t);
+
+//carica gli incontri tra persone
+LOAD CSV FROM "file:///meetings.csv" AS column
+WITH split(column[0]," ")[0] as latitude,split(column[0]," ")[1] as longitude, column[1] as timestamp, column[2] as cf1, column[3] as cf2 where timestamp<>"timestamp_1"
+MATCH (p:Person{cf:cf1})
+with p,timestamp,latitude,longitude,cf2
+match(k:Person{cf:cf2})
+with p,timestamp,latitude,longitude,k
+CREATE (p)-[r:MET{timestamp:datetime(timestamp), latitude:latitude, longitude:longitude}]->(k);
+
+//carica le visite ai public place
+LOAD CSV FROM "file:///public_visits.csv" AS column
+WITH column[0] as cf, column[1] as id_place, column[2] as date_in, column[3] as date_out
+MATCH (p:Person{cf:cf})
+WITH id_place,date_in,date_out,p
+MATCH(k:PublicPlace{id:toInteger(id_place)})
+CREATE (p)-[r:WENT_TO{date_in:datetime(date_in), date_out:datetime(date_out)}]->(k);
+
+**********************************************************************************************************
+******************************************* QUERIES ******************************************************
+**********************************************************************************************************
+
+1.persone andate senza greenpass in un public place
+
+MATCH (p:Person)-[r:WENT_TO]->(pp)
+with p,r,pp
+match (p)
+where not (p)-[:GOT]->()
+with distinct p as NoVaccine,r,pp
+optional match (NoVaccine)-[rTest:GOT_TESTED]->()
+WHERE rTest.datetime>r.date_in-duration({hours:48}) and rTest.datetime<r.date_in and rTest.result="Negative"
+with r,pp,rTest,NoVaccine
+where rTest is null
+return NoVaccine.cf,r.date_in,pp.name
+
+
+1.variante - persone attualmente senza greenpass
+
+MATCH (p:Person)
+optional match (p)-[r:GOT_TESTED]->()
+WHERE r.datetime>datetime()-duration({hours:48}) 
+with r,p
+where r is null
+with p as noTest
+match (noTest)
+where not (noTest)-[:GOT]->()
+return noTest as noTestNoVaccine
+
+***********************************************************************
+2.conviventi con infetti
+
+MATCH (p:Person)-[r:GOT_TESTED]->(t:Test)
+with max(r.datetime) as lastTestDate,p
+match (p)-[r:GOT_TESTED{datetime:lastTestDate}]->(t)
+where r.result="Positive"
+with p as illPeople, r as rlast
+match (p:Person)-[:LIVES_IN]->(h)<-[:LIVES_IN]-(illPeople)
+return p,h
+
+***********************************************************************
+
+3. trova chi è andato nello stesso luogo pubblico in orari sovrapposti di un infetto a partire da 15 giorni prima del tampone positivo
+
+match (p:Person)-[r:GOT_TESTED]->(t:Test)
+with max(r.datetime) as lastTestDate,p
+match (p)-[r:GOT_TESTED{datetime:lastTestDate}]->(t)
+where r.result="Positive"
+with p as illPeople, r as rlast
+match (p:Person)-[r1:WENT_TO]->(pp)<-[r2:WENT_TO]-(illPeople)
+where rlast.datetime-duration({days:15})<r1.date_in  and
+        (
+            duration.inSeconds(r2.date_in,r1.date_out).seconds>0
+            and duration.inSeconds(r1.date_out,r2.date_out).seconds>0
+            or
+            duration.inSeconds(r2.date_in,r1.date_in).seconds>0
+            and duration.inSeconds(r1.date_in,r2.date_out).seconds>0
+            or
+            duration.inSeconds(r1.date_in,r2.date_in).seconds>0
+            and duration.inSeconds(r2.date_out,r1.date_out).seconds>0
+            or
+            duration.inSeconds(r2.date_in,r1.date_in).seconds>0
+            and duration.inSeconds(r1.date_out,r2.date_out).seconds>0
+        )
+
+return p.cf,illPeople.cf,rlast.datetime, r1.date_in as dataIn1,r1.date_out as dataOut1, r2.date_in as dataInIll, r2.date_out as dataOutIll,pp.name as dove 
+
+
+3.variante - trova chi è entrato in contatto con una "persona malata" da 15 giorni prima del suo ultimo test positivo
+
+match (p:Person)-[r:GOT_TESTED]->(t:Test)
+with max(r.datetime) as lastTestDate,p
+match (p)-[r:GOT_TESTED{datetime:lastTestDate}]->(t)
+where r.result="Positive"
+with p as illPeople, r as rlast
+match (p:Person)-[meeting:MET]->(illPeople)
+where rlast.datetime-duration({days:15})<meeting.timestamp
+return p.cf,illPeople.cf,meeting.timestamp,rlast.datetime
+
+***********************************************************************
+
+4.1 - chi si è vaccinato a ottobre
+
+match (n:Person)-[r:GOT]->(v)
+where   r.datetime>datetime("2021-10-01T00:00:00") and 
+        r.datetime<datetime("2021-10-31T23:59:59") 
+return n.name,n.surname,v.type,r.datetime
+
+
+4.2 - chi si è vaccinato a ottobre
+match (n:Person)-[r:GOT]->(v)
+where   r.datetime>datetime("2021-10-01T00:00:00") and 
+        r.datetime<datetime("2021-10-31T23:59:59") 
+return n.name,n.surname,v.type,r.datetime
+
+***********************************************************************
+
+5. analisi statistica sui vaccinati
+
+match (n:Person) 
+with count(n) as totalPeople
+match (n:Person)-[:GOT]->(v)
+with totalPeople,count(distinct n) as totalVaccinatedPeople
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>=date()-duration({years:30}) and
+        date(n.birthdate)<=date()-duration({years:18})
+with totalPeople,totalVaccinatedPeople,count(distinct n) as range1830
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>=date()-duration({years:45}) and
+        date(n.birthdate)<date()-duration({years:30})
+with range1830,totalPeople,totalVaccinatedPeople,count(distinct n) as range3045
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>=date()-duration({years:60}) and
+        date(n.birthdate)<date()-duration({years:45})
+with range3045,range1830,totalPeople,totalVaccinatedPeople,count(distinct n) as range4560
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)>=date()-duration({years:80}) and
+        date(n.birthdate)<date()-duration({years:60})
+
+with range4560,range3045,range1830,totalPeople,totalVaccinatedPeople,count(distinct n) as range6080
+match(n)-[:GOT]->(v)
+where   date(n.birthdate)<date()-duration({years:80})
+return totalPeople,totalVaccinatedPeople,round(100*toFloat(totalVaccinatedPeople)/toFloat(totalPeople)*100)/100 as totalVaccinatedPeoplePerc,
+range1830,round(100*toFloat(range1830)/toFloat(totalPeople)*100)/100 as range1830Perc,
+range3045,round(100*toFloat(range3045)/toFloat(totalPeople)*100)/100 as range3045Perc,
+range4560,round(100*toFloat(range4560)/toFloat(totalPeople)*100)/100 as range4560Perc,
+range6080,round(100*toFloat(range6080)/toFloat(totalPeople)*100)/100 as range6080Perc,
+count(distinct n) as moreThan80,round(100*toFloat(count(n))/toFloat(totalPeople)*100)/100 as moreThan80Perc
+
+**********************************************************************************************************
+******************************************* COMMANDS *****************************************************
+**********************************************************************************************************
+
+1.federico si trasferisce
+
+match (p:Person{name:"Federico",surname:"Sanna"})-[r:LIVES_IN]->(h)
+with p,r
+match (h:Home{home_id:6})
+create (p)-[:LIVES_IN]->(h)
+delete r
+
+***********************************************************************
+
+2.cancella tutti i records dei public place più vecchi di 1 anno
+
+match ()-[r:WENT_TO]->(pp)
+where r.date_in<datetime()-duration({years:1})
+delete r
+
+***********************************************************************
+
+3.gestore del publicPlace vuole cambiare il nome
+
+match (pp{name:"Bar Magenta"})
+set pp.name="Bar Magenta 2.0"
+return pp
+
+***********************************************************************
+
+4.loadCSV
+
+//carica case
+
+LOAD CSV FROM "file:///homes.csv" AS column
+WITH column[0] as id, column[1] as address, column[2] as house_number, column[3] as cap where id<>"id"
+MERGE (h:Home{home_id:toInteger(id),address:address,house_number:house_number,cap:cap});
+
+//carica gli utenti e collega case dal csv
+
+LOAD CSV FROM "file:///people.csv" AS column
+with column[0] as surname, column[1] as name,column[2] as birthdate , column[3] as cf,column[4] as home  where surname<>"surname"
+merge (p:Person{cf:cf,birthdate:birthdate,surname:surname, name:name})
+with home as home, p as p
+match (f:Home{home_id:toInteger(home)})
+merge (p)-[:LIVES_IN]->(f);
