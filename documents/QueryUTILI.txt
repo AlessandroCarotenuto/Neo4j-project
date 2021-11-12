@@ -53,7 +53,7 @@ MATCH (p:Person{cf:cf1})
 with p,timestamp,latitude,longitude,cf2
 match(k:Person{cf:cf2})
 with p,timestamp,latitude,longitude,k
-CREATE (p)-[r:MET{timestamp:datetime(timestamp), latitude:latitude, longitude:longitude}]->(k)
+CREATE (p)-[r:MET{timestamp:datetime(timestamp), latitude:latitude, longitude:longitude}]-(k)
 
 #carica le visite ai public place
 LOAD CSV FROM "file:///public_visits.csv" AS column
