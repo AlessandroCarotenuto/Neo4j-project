@@ -225,7 +225,23 @@ return pp
 
 ***********************************************************************
 
-4.loadCSV
+4.create a new meeting between two persons
+
+MATCH (p1:Person{cf:'DGSMRC50A10F205I'}),  (p2:Person{cf:'SNNFRC32E03F205E'})
+CREATE (p1)-[r:MET{timestamp datetime('2021-10-30T08:25:00') , latitude: '45.4585', longitude: '9.1873'}]->(p2)
+RETURN r
+
+***********************************************************************
+
+5.create a new visit
+
+MATCH (p:Person{cf:'DGSMRC50A10F205I'}),  (pp:PublicPlace{name:"San Siro"})
+CREATE (p)-[r:WENT_TO{date_in: datetime('2021-10-30T08:25:00') , date_out: datetime('2021-10-30T11:25:00')}]->(pp)
+RETURN r
+
+***********************************************************************
+
+6.loadCSV
 
 //carica case
 

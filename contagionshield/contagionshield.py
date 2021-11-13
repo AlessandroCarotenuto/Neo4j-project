@@ -6,6 +6,12 @@ df = pd.read_csv("../db/public_places.csv", encoding='latin-1')
 publicPlaces = df.Name
 timeTable = ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00',
              '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00']
+hourTable = []
+for h in range(0, 24):
+    hourTable.append(str(h))
+minuteTable = []
+for m in range(0, 60):
+    minuteTable.append(str(m))
 
 
 def pretty_people(result, name):
@@ -90,44 +96,97 @@ pred_query_column = [
 # column where user can use commands
 commands_query_column = [
     [
-        sg.Text("Create a meeting:", font="16"),
+        sg.Text("Create a new meeting:", font="16"),
     ],
     [
-        sg.In(key='-DATE-', size=(20, 1), default_text="2021-10-31"),
+        sg.In(key='-MEETING-DATE-', size=(20, 1), default_text="2021-10-31"),
         sg.CalendarButton('Choose date', close_when_date_chosen=True, key="-CALENDAR-",
                           format='%Y-%m-%d')
     ],
     [
-        sg.Text("Starting time:", font="10"),
+        sg.Text("Hour:", font="10"),
         sg.OptionMenu(
-            values=timeTable, size=(6, 1), expand_x=True, key="-START-TIME-",
-            default_value="00:00"
+            values=hourTable, size=(6, 1), expand_x=True, key="-MEETING-HOUR-",
+            default_value="10"
         ),
-        sg.Text("Ending time:", font="10"),
+        sg.Text("Minute:", font="10"),
         sg.OptionMenu(
-            values=timeTable, size=(6, 1), expand_x=True, key="-END-TIME-",
-            default_value="23:00"
+            values=minuteTable, size=(6, 1), expand_x=True, key="-MEETING-MINUTE-",
+            default_value="30"
         ),
     ],
     [
+        sg.Text("First person CF:", font="10"),
+        sg.In(key='-FIRST-PERSON-', size=(20, 1), default_text="DGSMRC50A10F205I"),
+    ],
+    [
+        sg.Text("Second person CF:", font="10"),
+        sg.In(key='-SECOND-PERSON-', size=(20, 1), default_text="SNNFRC32E03F205E"),
+    ],
+    [
+        sg.Button(button_text="Create meeting",
+                  enable_events=True,
+                  key="-CREATE-MEETING-",
+                  expand_x=True)
+    ],
+    [
+        sg.HorizontalSeparator()
+    ],
+    [
+        sg.Text("Create a new visit:", font="16"),
+    ],
+    [
+        sg.In(key='-VISIT-DATE-', size=(20, 1), default_text="2021-10-31"),
+        sg.CalendarButton('Choose date', close_when_date_chosen=True, key="-CALENDAR-",
+                          format='%Y-%m-%d'),
+    ],
+    [
+        sg.Text("Hour in:", font="10"),
+        sg.OptionMenu(
+            values=hourTable, size=(6, 1), expand_x=True, key="-VISIT-HOUR-IN",
+            default_value="10"
+        ),
+        sg.Text("Minute in:", font="10"),
+        sg.OptionMenu(
+            values=minuteTable, size=(6, 1), expand_x=True, key="-VISIT-MINUTE-IN",
+            default_value="30"
+        ),
+        sg.VerticalSeparator(),
+        sg.Text("Hour out:", font="10"),
+        sg.OptionMenu(
+            values=hourTable, size=(6, 1), expand_x=True, key="-VISIT-HOUR-OUT",
+            default_value="11"
+        ),
+        sg.Text("Minute out:", font="10"),
+        sg.OptionMenu(
+            values=minuteTable, size=(6, 1), expand_x=True, key="-VISIT-MINUTE-OUT",
+            default_value="30"
+        )
+    ],
+    [
+        sg.Text("Visitor person CF:", font="10"),
+        sg.In(key='-VISITOR-', size=(20, 1), default_text="DGSMRC50A10F205I"),
         sg.Text("Select the place:", font="10"),
         sg.OptionMenu(
-            values=publicPlaces, size=(12, 1), expand_x=True, key="-PLACE-",
+            values=publicPlaces, size=(12, 1), expand_x=True, key="-VISITED-PLACE-",
             default_value=publicPlaces[0]
         ),
     ],
     [
-        sg.Checkbox("Unvaccinated", enable_events=True, key="-UNVACCINATED-"),
-        sg.Checkbox("Vaccinated", enable_events=True, key="-VACCINATED-"),
-        sg.Checkbox("Tested Negative", enable_events=True, key="-TESTED-"),
-        sg.Button(button_text="Send Query", enable_events=True, key="-CUSTOM-QUERY-")
+        sg.Button(button_text="Create visit",
+                  enable_events=True,
+                  key="-CREATE-VISIT-",
+                  expand_x=True)
     ],
     [
-        sg.Listbox(
-            values=[], enable_events=True, size=(55, 20),
-            key="-CUSTOM-LIST-",
-            horizontal_scroll=True
-        )
+        sg.HorizontalSeparator()
+    ],
+    [
+        sg.Text("Flush all public place visits older than 1 year", font="10"),
+        sg.Button(button_text="Delete",
+                  enable_events=True,
+                  key="-FLUSH-",
+                  expand_x=True)
     ]
 ]
 
@@ -200,7 +259,7 @@ while True:
             a4 = " AND NOT (p)-[:GOT]-> (:Vaccine)"
 
         query = "MATCH (p:Person)-[r:WENT_TO]-(pp:PublicPlace{name:\"" + place + "\"})" + a1 + a2 + "where " \
-                                                                                                  "r.date_in.year =" + \
+                                                                                                    "r.date_in.year =" + \
                 date[0] + " and r.date_in.month =" + date[1] + " and r.date_in.day =" + date[2] + \
                 " and ((r.date_in.hour >=" + start_time[0] + " and r.date_out.hour <=" + end_time[0] + ") or (" \
                                                                                                        "r.date_in" \
@@ -264,6 +323,50 @@ while True:
             pretty_data = pretty_people(data, "noTest")
 
         window["-QUERY-LIST-"].update(pretty_data)
+
+    if event == "-CREATE-MEETING-":
+        date = values["-MEETING-DATE-"]
+        hour = values["-MEETING-HOUR-"]
+        minute = values["-MEETING-MINUTE-"]
+        cf1 = values["-FIRST-PERSON-"]
+        cf2 = values["-SECOND-PERSON-"]
+        datetime = date + "T" + hour + ":" + minute + ":00"
+        query = "MATCH (p1:Person{cf:'" + cf1 + "'}),  (p2:Person{cf:'" + cf2 + "'}) CREATE (p1)-[r:MET{timestamp: " \
+                "datetime('" + datetime + "') , latitude: '45.4585', longitude: '9.1873'}]->(p2) RETURN r "
+        data = graph.run(query).data()
+        if data:
+            sg.Popup('Successfully created!', keep_on_top=True)
+        else:
+            sg.Popup('Error! Entry not created!', keep_on_top=True)
+
+    if event == "-CREATE-VISIT-":
+        date = values["-VISIT-DATE-"]
+        hour_in = values["-VISIT-HOUR-IN"]
+        minute_in = values["-VISIT-MINUTE-IN"]
+        hour_out = values["-VISIT-HOUR-OUT"]
+        minute_out = values["-VISIT-MINUTE-OUT"]
+        place = values["-VISITED-PLACE-"]
+        cf = values["-VISITOR-"]
+        datetime_in = date + "T" + hour_in + ":" + minute_in + ":00"
+        datetime_out = date + "T" + hour_out + ":" + minute_out + ":00"
+        query = "MATCH (p:Person{cf:'" + cf + "'}),  (pp:PublicPlace{name:\"" + place + "\"}) " \
+                "CREATE (p)-[r:WENT_TO{date_in: datetime('" + datetime_in + "') , " \
+                "date_out: datetime('" + datetime_out + "')}]->(pp) RETURN r"
+        data = graph.run(query).data()
+        if data:
+            sg.Popup('Successfully created!', keep_on_top=True)
+        else:
+            sg.Popup('Error! Entry not created!', keep_on_top=True)
+
+    if event == "-FLUSH-":
+        query1 = "match ()-[r:WENT_TO]->(pp) where r.date_in<datetime()-duration({years:1}) delete r"
+        query2 = "match ()-[rn:WENT_TO]->(pp) where rn.date_in<datetime()-duration({years:1}) return rn"
+        graph.run(query1)
+        data = graph.run(query2).data()
+        if not data:
+            sg.Popup('Successfully deleted!', keep_on_top=True)
+        else:
+            sg.Popup('Error! Entries not deleted!', keep_on_top=True)
 
     if event == "Queries" or event == "Commands":
         window[f'-COL{layout_page}-'].update(visible=False)
