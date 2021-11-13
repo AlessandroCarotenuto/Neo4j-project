@@ -15,6 +15,12 @@ python --version
 ```
 If not, download it from the official website.
 
+Make sure your local database is at 
+```
+localhost:7687
+```
+and that it has "smbud" as password.
+
 Install the required packages (in the "contagionshield" folder):
 ```
 pip install -r requirements.txt
