@@ -241,21 +241,16 @@ while True:
         a4 = ""
         a5 = ""
 
-        # ADESSO CONTA ANCHE LA DATA DEL VACCINO, SE HANNO FATTO IL VACCINO DOPO IL GIORNO IN CUI SONO ANDATI
-        # AL PUBLIC PLACE CONTANO COME NON VACCINATI
         if values["-VACCINATED-"]:
             a1 = ", (p)-[k:GOT]->(v:Vaccine)"
             a5 = " and k.datetime < r.date_in "
-        # DOVREBBE FUNZIONARE MA PER ORA NON CI SONO PERSONE NEL DB CHE SONO ANDATE IN UN PUBLIC PLACE
-        # E CHE HANNO FATTO UN TEST POSITIVO ENTRO 48 ORE PRIMA
+
         if values["-TESTED-"]:
             a2 = ", (p)-[j:GOT_TESTED]->(t:Test)"
             a3 = "and j.result = 'Negative' and ((r.date_out - duration({hours: 48})) < j.datetime) and r.date_in > " \
                  "j.datetime "
 
         if values["-UNVACCINATED-"]:
-            # FORSE FUNZIONA, DA PROVARE CON TANTI CASI
-            # a4 = "optional match (p)-[k:GOT]->(v:Vaccine) where (k.datetime > r.date_in or k is null)"
             a4 = " AND NOT (p)-[:GOT]-> (:Vaccine)"
 
         query = "MATCH (p:Person)-[r:WENT_TO]-(pp:PublicPlace{name:\"" + place + "\"})" + a1 + a2 + "where " \
@@ -288,7 +283,7 @@ while True:
             pretty_data = pretty_people(data, "p")
         if values["-QUERY-"] == "Infection Statistics":
             query = "match (n:Person) with count(n) as TotalPeople match (n:Person)-[:GOT]->(v) with TotalPeople," \
-                    "count(n) as totalVaccinatedPeople match(n)-[:GOT]->(v) where   date(n.birthdate)>date(" \
+                    "count(distinct n) as totalVaccinatedPeople match(n)-[:GOT]->(v) where   date(n.birthdate)>date(" \
                     ")-duration({years:30}) and date(n.birthdate)<date()-duration({years:18}) with TotalPeople," \
                     "totalVaccinatedPeople,count(n) as range1830 match(n)-[:GOT]->(v) where   date(n.birthdate)>date(" \
                     ")-duration({years:45}) and date(n.birthdate)<date()-duration({years:30}) with range1830," \
