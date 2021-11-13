@@ -16,6 +16,7 @@
     urlcolor=black
 }
 \usepackage{changepage}
+\addto{\captionsenglish}{\renewcommand{\refname}{}}
 
 \begin{document}
 
@@ -48,7 +49,6 @@
 \newpage
 \tableofcontents
 \newpage
-
 \section{Problem Specification}
 \paragraph{}The sanitary emergency caused by the spread of the SARS-CoV-2 virus and the pandemic that has spread since 2019 has highlighted how the Big Data and the applications based on the large-scale use of these technologies can lead to concrete and effective results in a short time. Among the main examples that can be cited with regard to these there is the contact tracing, i.e. the process of attempting to identify people who have recently been in contact with someone diagnosed with an infectious disease, especially in order to treat or quarantine them. \par
 The purpose of our group project is to build an information system that allows us to manage pandemic information for a given country. In order to do this we have to design, store and query a graph data structure in a NoSQL DB, by means of the graph database management software Neo4j, supporting a contact tracing app for COVID-19.
@@ -60,12 +60,12 @@ Specifically, in order to simulate the pandemic situation in the most realistic 
     \item data relating to public places are sent to the system by the manager of the public place itself,
     \item to record a greater number of relationships to be processed, while ensuring the consistency and meaningfulness of the stored data, it was decided to limit to an example study case in which the interactions present in the dataset are related to the single city of Milan and for a limited time interval, therefore:
   \begin{itemize}[noitemsep]
-    \item[-] the meetings between people and the visits to public places took place within a month, in particular, to test the queries more easily, there is a specific date that expressely presents multiple recorded interactions,
-    \item[-] the test and vaccine dates are all within the last 3 months,
+    \item[-] the tests dates, the meetings between people and the visits to public places took place from the 15\textsuperscript{th} of October to the 15\textsuperscript{th} of November, in addition, to test the queries more easily, there is a specific date, i.e. the 31\textsuperscript{st} of October, that expressely presents multiple recorded interactions,
+    \item[-] vaccine administrations were all performed within the last year,
     \item[-] all public places are located in Milan,
     \item[-] meetings between people are geolocated within the city limits
   \end{itemize}
-    \item with regard to the various connections that can exist between several people and the infections that can occur within the same family, it was preferred, for design purposes, to consider the concept of "same residential unit" (i.e. residence) rather than that of "family ", since belonging to a given family unit does not necessarily imply a constant coexistence (e.g. workers who often travel for a job or off-site students) while a relationship of coexistence between several people, not necessarily related to each other, usually involves a close and inevitable contact,
+    \item with regard to the various connections that can exist between several people and the infections that can occur within the same family, it was preferred, for design purposes, to consider the concept of "same residential unit" (i.e. residence) rather than that of "family", since belonging to a given family unit does not necessarily imply a constant coexistence (e.g. workers who often travel for a job or off-site students) while a relationship of coexistence between several people, not necessarily related to each other, usually involves a close and inevitable contact,
     \item concerning to meetings between two or more people, it was assumed that any contact tracing devices/ apps interact with the system, communicating this information for each meeting: person1, person2, time at which the contact took place, geographical point in where the contact took place,
     \item a person is considered infected from the moment he undergoes a test and receives a positive result until he takes another test again but it is negative,
     \item in the event that a person undergoes a test and receives a positive result, all people met in the 15 days prior to the test will receive an alert notification on the app ensuring the privacy of the infected person is safeguarded,
@@ -75,25 +75,25 @@ Specifically, in order to simulate the pandemic situation in the most realistic 
 \section{ER diagram}
 \paragraph{}
 	\begin{center}
- 		\includegraphics[width = 10 cm]{ER_diagram.jpg}
+ 		\includegraphics[width = 15 cm]{ER_diagram.jpg}
 		\captionof{figure}{E-R Diagram}
 	\end{center}
-\par Starting from the considerations previously exposed regarding the implementation hypotheses, we have drawn an E-R diagram which includes 5 different entities and 3 many-to-many relationships described below in the logical model: \par
+\par Starting from the considerations previously exposed regarding the implementation hypotheses, we have drawn an ER diagram (\textbf{Figure 1}) which includes 5 different entities and 4 many-to-many relationships described below in the logical model: \par
   \begin{itemize}[noitemsep]
    	\item[-]	\textbf{Person}(\underline{CF}, Name, Surname, DateOfBirth)
 	\item[-]	\textbf{Vaccine}\underline{(Type})
 	\item[-]	\textbf{Test}(\underline{Type})
 	\item[-]	\textbf{PublicPlace}(\underline{ID}, Name, Type, Address)
 	\item[-]	\textbf{Home}(\underline{ID}, Address)
-	\item[-]	\textbf{Meets}(\underline{Person.CF}, \underline{Person.CF}, Latitude, Longitude, Timestamp)
-	\item[-]	\textbf{GetsTest}(\underline{Person.CF}, \underline{Test.Type}, Datetime, Result)
-	\item[-]	\textbf{GetsVaccine}(\underline{Person.CF}, \underline{Vaccine.Type}, Datetime)
-	\item[-]	\textbf{GoesTo}(\underline{Person.CF}, \underline{PublicPlace.ID}, DatetimeIn, DatetimeOut)
+	\item[-]	\textbf{Met}(\underline{Person.CF}, \underline{Person.CF}, Latitude, Longitude, Timestamp)
+	\item[-]	\textbf{GotTested}(\underline{Person.CF}, \underline{Test.Type}, Datetime, Result)
+	\item[-]	\textbf{Got}(\underline{Person.CF}, \underline{Vaccine.Type}, Datetime)
+	\item[-]	\textbf{WentTo}(\underline{Person.CF}, \underline{PublicPlace.ID}, DatetimeIn, DatetimeOut)
   \end{itemize} \par
-The \textbf{Person} entity describes every possible individual with his own personal data, \textbf{Test} and \textbf{Vaccine} concern the Covid-related information of each one. The \textbf{Home} entity allow us to keep track of all the people who share the same housing unit, while with \textbf{PublicPlace} it is possible to check who was in a specific place identified by an address from a certain time until it went out. Finally, the \textbf{Meets} relationship is used to keep track of all the people that everyone can meet during the day by recording with whom the meeting took place, when and where based on geographical coordinates, storing data only if the meeting duration was at least 15 minutes accordingly with the hypotheses specified before.
+The \textbf{Person} entity describes every possible individual with his own personal data, the \textbf{Got} and \textbf{GotTested} relationships concern the Covid-related information of each one by means of \textbf{Test} and \textbf{Vaccine} that represent the actual types of vaccines and tests currently used. The \textbf{LivesIn} relationship allow us to keep track of all the people who share the same housing unit specified by the \textbf{Home}, while with \textbf{WentTo} it is possible to check who was in a specific place identified by \textbf{PublicPlace} through an address from a certain time until it went out. Finally, the \textbf{Met} relationship is used to keep track of all the people that everyone can meet during the day by recording with whom the meeting took place, when and where based on geographical coordinates, storing data only if the meeting duration was at least 15 minutes accordingly with the hypotheses specified before.
 \section{Dataset description}
 \paragraph{} One of the most critical parts of working with Big Data is managing large amounts of data collected in large datasets. To test and simulate the use of the database for contact tracing activities, some sample datasets were generated, saved in .csv format and imported into Neo4j through the command: \texttt{LOAD CSV FROM "file: ///file.csv" AS ...}. \par
-Each dataset is divided into various fields that trace the structure of the tables expressed in the ER model, each one was generated randomly through python scripts and to experiment and perform at best the possible tests on the queries and commands that can be executed thanks to Neo4j the number of entries foreseen for each dataset is in the order of magnitude of the hundreds, as a whole, starting exclusively from the data loaded from the datasets, the database provides:
+Each dataset is divided into various fields that trace the structure of the tables expressed in the ER model, each one was generated randomly through Python scripts (you can find these ones into the folder \texttt{"db"}) and to experiment and perform at best the possible tests on the queries and commands that can be executed thanks to Neo4j the number of entries foreseen for each dataset is in the order of magnitude of the hundreds, as a whole, starting exclusively from the data loaded from the datasets, the database provides:
 \begin{center}
 \begin{tabular}{|l|l|l|l|}
 \hline
@@ -111,22 +111,149 @@ Test Types & 2 & Tests & 450\\
 \hline
 \end{tabular}
 \end{center}
-
 \section{Queries and Commands}
 \paragraph{} The correct functioning of the information system involves the implementation of some essential commands and queries for the database in order to properly support the app and to ensure the right execution of searches among the data available for statistical or practical purposes. \par
-The main commands that have been developed are those that are used to populate the database in the initialization phase starting from the previously generated datasets (e.g. load houses, people and associate each one with their residence, load public places and visits made by each one, upload meetings between more people) and to generate the entities and relationships previously described, such as vaccines and tests and their connection to various people. In addition, other more specific commands have been developed to manage typical situations or to modify the database data, such as: updating the address of a person who moves, updating the name of a public place by the manager, creating a new meeting between two people or a visit to a public place, deleting all records relating to public places that date back more than a year ago, etc. \par
-Regarding the queries, the main ones considered concern a series of analyzes that can be useful both for statistical purposes in the field of data science to analyze the pandemic situation of the moment and to produce effective predictive models and/or for more concrete purposes related to human activities and immediate management of the consequences of the pandemic on daily life. The most relevant queries examined are:
-  \begin{itemize}[noitemsep]
-   \item[-] find how many people went without greenpass in a public place, slight variation: how many people are currently without greenpass,
-    \item[-] find the family/cohabitants of an individual and check if there are infected subjects among them,
-    \item[-] find the people met in a given period of time or after a given event (e.g. positive result of a Covid-test) and then generate a graph of the meetings with the people met from that moment onwards,
-    \item[-] find who has been vaccinated in a given time range to perform a sort of statistical analysis on the displayed data relating to vaccinated citizens, checking which of them has the greenpass (therefore the vaccine or test) in proportion to the total population depending on the age range,
-    \item[-] find who came into contact with an infected person 15 days before the last positive test, slight variation: find who went to the same public place at overlapping times as an infected person starting 15 days before the positive test
-  \end{itemize}
-\section{UI description}
-\paragraph{}provide some screenshots and describe how your application works and which functionalities it implements
-\section{User Guide} 
-\paragraph{} describe step by step how could we run your application, remember to provide all the different tools and libraries to run it
-\section{References and Sources(IF NEEDED)}
-\paragraph{}if there are sources you used that are worth mentioning
+\paragraph{} First of all you need to load the .csv files with the query you can find following the path \texttt{"documents/importDB.txt"}
+\subsection{Queries}
+\subsubsection{Find how many people went without greenpass in a public place}
+\paragraph{} This query allows us to find all the people that went in a public place without the GreenPass and the datetime related.
+\begin{center}
+	\fbox{\includegraphics[width = 13 cm]{query1.png}}
+\end{center}
+\paragraph{} The output is given by: 
+\begin{itemize}
+\item[•] The name and the surname of the person
+\item[•] The entrance time in the public place
+\item[•] The name of the public place
+\begin{center}
+	\fbox{\includegraphics[width = 12 cm]{outputquery11.png}}
+\end{center}
+\end{itemize}
+\clearpage
+\subsubsection{Find who lives with an infected individual}
+\paragraph{} This query allows us to detect a "family contact" with an infected person and obtain the people that need to be quarantined.
+\begin{center}
+	\fbox{\includegraphics[width = 13 cm]{query2.png}}
+\end{center}
+\paragraph{} The output is given by: 
+\begin{itemize}
+\item[•] The house identifier
+\item[•] The name and the surname of the person
+\item[•] The name and the surname of the infected cohabitant
+\begin{center}
+	\fbox{\includegraphics[width = 10 cm]{outputquery2.png}}
+	\captionof{figure}{Visual representation of the result with NeoDash}
+\end{center}
+\end{itemize}
+\subsubsection{Find public place contact with infect people}
+\paragraph{} This query allows us to find the people who went in the same public place (e.g. restaurant, cinema,...) at the same time with infected people starting from 15 days before their positive test.
+\begin{center}
+	\fbox{\includegraphics[width = 13 cm]{query3.png}}
+\end{center}
+\paragraph{} The output is given by: 
+\begin{itemize}
+\item[•] The name and the surname of the person
+\item[•] The name and the surname of the infected cohabitant
+\item[•] The datetime of the entrance of the health person
+\item[•] The datetime of the entrance of the ill person
+\item[•] The public place
+\begin{center}
+	\fbox{\includegraphics[width = 14 cm]{outputquery3.png}}
+\end{center}
+\end{itemize}
+
+\subsubsection{Find who got vaccinated in a temporal range}
+\paragraph{} This query allows us to find all the vaccinated people in the temporal range of October 2021.
+\begin{center}
+	\fbox{\includegraphics[width = 13 cm]{query4.png}}
+\end{center}
+\paragraph{} The output is given by: 
+\begin{itemize}
+\item[•] The name and the surname of the person
+\item[•] The type of the vaccine
+\item[•] The datetime of the vaccine
+\begin{center}
+	\fbox{\includegraphics[width = 12 cm]{outputquery4.png}}
+\end{center}
+\end{itemize}
+\pagebreak
+
+\subsubsection{Statistical analysis of the vaccination campaign}
+\paragraph{} This query allows us to compute an analysis on the number of the vaccinated people (and the percentage) grouped by age ranges.
+\begin{center}
+	\fbox{\includegraphics[width = 13 cm]{query5.png}}
+\end{center}
+\paragraph{} The output is given by: 
+\begin{itemize}
+\item[•] Total people
+\item[•] Total vaccinated people (with \%)
+\item[•] Vaccinated people in age ranges (with \%)
+\begin{center}
+	\fbox{\includegraphics[width = 14 cm]{outputquery5.png}}
+\end{center}
+\end{itemize}
+
+\subsection{Commands}
+\subsubsection{Federico moves in an other house (CREATE)}
+\paragraph{} In this command we simulate a person moving in an another house.
+\begin{center}
+	\fbox{\includegraphics[width = 13 cm]{command1.png}}
+\end{center}
+
+\subsubsection{Delete all the public place records older than 1 year (DELETE) }
+\paragraph{} In this command we simulate the need of removing old records that are not useful anymore.
+\begin{center}
+	\fbox{\includegraphics[width = 11 cm]{command2.png}}
+\end{center}
+
+\subsubsection{Name change of public place (UPDATE)}
+\paragraph{} In this command we simulate the need, of a public place manager, of changing name of the activity.
+\begin{center}
+	\fbox{\includegraphics[width = 8 cm]{command3.png}}
+\end{center}
+\clearpage
+\section{UI description \& User Guide}
+\subsection{UI description}
+\paragraph{}The design of the information system ended with the development of \emph{ContagionShield}, an application connected to the database with a simple GUI that is very intuitive and easy to use. The UI was created with the Python programming language by means of the libraries: \emph{PySimpleGUI} for the creation of the graphical interface, \emph{Py2neo} to work with Neo4j through the syntax offered by Python and \emph{pandas} to manage the analysis and manipulation of data, you can find these ones into the folder \texttt{"contagionshield"}. \par
+	\begin{center}
+ 		\includegraphics[width = 11 cm]{queriespage.PNG}
+		\captionof{figure}{Query Interface}
+	\end{center}
+As you can see from \textbf{Figure 3}, the main screen of the application is divided into two sections: one on the left that allows you to create customizable queries by choosing date, place, time interval and whether to display the vaccinated, non-vaccinated or with negative test, in \textbf{Figure 4} there is an example query with the results obtained; the other side section on the right (\textbf{Figure 5}) presents some predefined queries, some of them follow the ones specified and described in Chapter 5 of the report. \par
+	\begin{center}
+ 		\includegraphics[width = 11 cm]{queriesresult.PNG}
+		\captionof{figure}{Example Query with Results}
+	\end{center}
+	\begin{center}
+ 		\includegraphics[width = 11 cm]{queriesexpanded.png}
+		\captionof{figure}{Predefined Queries}
+	\end{center}
+\pagebreak
+Finally, as shown in \textbf{Figure 6}, it is possible to execute some of the commands already presented in Chapter 5 by reaching the appropriate section of the application by means of the \texttt{"Commands"} button in the lower left corner of the main screen. The executable commands allow you to create new meetings between several people by indicating their social security numbers, the date and time, create new visits to public places by specifying who went to a given place and when and in the end you can also delete all the visits to public places recorded in the last year. \par
+	\begin{center}
+ 		\includegraphics[width = 11 cm]{commandpage.PNG}
+		\captionof{figure}{Command Interface}
+	\end{center}
+\subsection{User Guide}
+\paragraph{}
+In order to run \emph{ContagionShield} it is necessary to verify some requirements and to perform some actions:
+\begin{itemize}[noitemsep]
+   \item[-] At first you have to check if you have the right Python version installed by using the command: \texttt{python --version}, if not you could download it from the official website: https://www.python.org/ 
+   \item[-] Then make sure your local database is at \texttt{localhost:7687} and that it has \texttt{"smbud"} as password
+   \item[-] Install the required packages (in the "contagionshield" folder): \texttt{pip install -r requirements.txt}
+   \item[-] Finally make it run by navigating to the folder where you have been saved the materials, then into \texttt{"contagionshield"} folder and run: \texttt{python contagionshield.py}
+   \item[-] From there you can execute queries about the collected data
+\end{itemize}
+\newpage
+\section{References \& Sources}
+  \begin{thebibliography}{9}
+    \bibitem{} Course Slides
+    \bibitem{} https://pysimplegui.readthedocs.io/en/latest/call%20reference/
+    \bibitem{} https://py2neo.org/
+    \bibitem{} https://neo4j.com/docs/cypher-manual/current/
+    \bibitem{} https://neo4j.com/developer/python/
+    \bibitem{} http://iniball.altervista.org/Software/ProgER
+    \bibitem{} https://neo4j.com/developer/cypher/
+    \bibitem{} https://pandas.pydata.org/docs/
+  \end{thebibliography}
 \end{document}
