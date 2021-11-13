@@ -15,7 +15,7 @@ python --version
 ```
 If not, download it from the official website.
 
-Install the required packages with:
+Install the required packages (in the "contagionshield" folder):
 ```
 pip install -r requirements.txt
 ```
