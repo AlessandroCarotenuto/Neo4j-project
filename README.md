@@ -1,5 +1,5 @@
 
-# Group 14 SMBUD Project Repository
+# Group 14 SMBUD Project Neo4j Repository
 
 ## Usage
 Clone this repository locally using:
