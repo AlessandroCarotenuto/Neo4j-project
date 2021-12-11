@@ -4,7 +4,7 @@
 ## Usage
 Clone this repository locally using:
 ```
-git clone https://github.com/SMBUD-Group14/SMBUD-repo.git
+git clone https://github.com/SMBUD-Group14/Neo4j-project.git
 ```
 Or download the repository and unzip it.
 
